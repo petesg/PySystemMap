@@ -1,0 +1,130 @@
+{
+    "nodes" : [
+        {   "name" : "Rotor",
+            "location" : null,
+            "connections" : [
+                {   "name" : null,
+                    "bus" : "Encoder Readhead 1",
+                    "int. cable" : true,
+                    "int. connector" : true,
+                    "connector" : null,
+                    "direction" : "O"
+                },
+                {   "name" : null,
+                    "bus" : "Encoder Readhead 2",
+                    "int. cable" : true,
+                    "int. connector" : true,
+                    "connector" : null,
+                    "direction" : "O"
+                },
+                {   "name" : "Drive",
+                    "bus" : "Motor Power",
+                    "int. cable" : false,
+                    "int. connector" : false,
+                    "connector" : "BNC",
+                    "direction" : "IO"
+                }
+            ]
+        },
+        {   "name" : "DSI",
+            "location" : null,
+            "connections" : [
+                {   "name" : null,
+                    "bus" : "Encoder Readhead 1",
+                    "int. cable" : false,
+                    "int. connector" : true,
+                    "connector" : "DB-15",
+                    "direction" : "I"
+                },
+                {   "name" : null,
+                    "bus" : "Encoder Readhead 2",
+                    "int. cable" : false,
+                    "int. connector" : true,
+                    "connector" : "DB-15",
+                    "direction" : "I"
+                },
+                {   "name" : "Combined Encoder Out",
+                    "bus" : "Encoder",
+                    "int. cable" : false,
+                    "int. connector" : true,
+                    "connector" : "DB-26",
+                    "direction" : "O",
+                    "pinout" : {
+                        "7" : "B",
+                        "9" : "GND",
+                        "15" : "Z",
+                        "24" : "A",
+                        "26" : "+5V"
+                    }
+                }
+            ]
+        },
+        {   "name" : "Controller",
+            "location" : null,
+            "connections" : [
+                {   "name" : "Encoder In",
+                    "bus" : "Encoder",
+                    "int. cable" : false,
+                    "int. connector" : false,
+                    "connector" : "DB-26",
+                    "direction" : "I",
+                    "pinout" : {
+                        "7" : "B",
+                        "9" : "GND",
+                        "15" : "Z",
+                        "24" : "A",
+                        "26" : "+5V"
+                    }
+                },
+                {   "name" : "Motor Drive",
+                    "bus" : "Motor Power",
+                    "int. cable" : false,
+                    "int. connector" : false,
+                    "connector" : "BNC",
+                    "direction" : "IO"
+                }
+            ]
+        }
+    ],
+    "busses" : [
+        {   "name" : "Encoder Readhead 1",
+            "nets" : null,
+            "signal" : "Quadrature"
+        },
+        {   "name" : "Encoder Readhead 2",
+            "nets" : null,
+            "signal" : "Quadrature"
+        },
+        {   "name" : "Encoder",
+            "nets" : [
+                {   "name" : "A",
+                    "color" : "black"
+                },
+                {   "name" : "B",
+                    "color" : "blue"
+                },
+                {   "name" : "Z",
+                    "color" : "white"
+                },
+                {   "name" : "GND",
+                    "color" : "yellow"
+                },
+                {   "name" : "+5V",
+                    "color" : "red"
+                }
+            ],
+            "signal" : "Quadrature [Indexed]"
+        },
+        {   "name" : "Motor Power",
+            "signal" : "Power",
+            "nets" : [
+                {   "name" : "+",
+                    "color" : "red"
+                },
+                {   "name" : "-",
+                    "color" : "black"
+                }
+            ]
+        }
+    ]
+}
