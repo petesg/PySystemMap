@@ -2,6 +2,7 @@ import sqlite3
 import json
 import os
 from _typeshed import SupportsRead
+from typing import Iterable, get_type_hints
 
 class SystemMap:
 
@@ -68,18 +69,18 @@ class SystemMap:
             signal = bus['signal']
             if nets and type(nets) is not list:
                 raise ValueError(f'JSON key "nets" must contain a list.')
-            extraJson = json.dumps({k: bus[k] for k in bus.keys() if k not in ['name', 'nets', 'signal']})
-            if extraJson == {}:
-                extraJson = None
+            extraBusInfo = json.dumps({k: bus[k] for k in bus.keys() if k not in ['name', 'nets', 'signal']})
+            if extraBusInfo == {}:
+                extraBusInfo = None
             # save to db
-            cursor.execute('INSERT INTO busses (name, signal) VALUES (?, ?)', [name, signal])
+            cursor.execute('INSERT INTO busses (name, signal, extraJson) VALUES (?, ?, ?)', [name, signal, extraBusInfo])
             self._db.commit()
             cursor.execute('SELECT LAST_INSERT_ROWID();')
             busId = cursor.fetchone()[0]
             if nets:
                 for net in nets:
-                    whozgda=
-                    cursor.execute('INSERT INTO nets (name, bus, extrajson)')
+                    name = net['name']
+                    cursor.execute('INSERT INTO nets (name, bus, extrajson) VALUES (?, ?, ?)', [name, busId, ])
             
 
     def _SetupDb(self):
@@ -103,3 +104,36 @@ class SystemMap:
         
         self._db.commit()
         cursor.close()
+
+    def _GetExtraJson(obj: dict[str, any], nonExtraKeys: Iterable[str]):
+        """Returns `obj` as a JSON string, stripped of keys listed in `nonExtraKeys`"""
+        return json.dumps({k: obj[k] for k in obj.keys() if k not in nonExtraKeys})
+    
+    class MapObject:
+        extraJson: dict[str, any] | None
+        def __init__(self, d: dict[str, any]):
+            # get list of properties in this object
+            props = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+            types = get_type_hints(self)
+            # reqdKeys: dict[str, type]
+            # optKeys: dict[str, type]
+
+            # load in all the keys we're getting
+            for key in d.keys():
+                val = d[key]
+                if key in props:
+                    if isinstance(d, types[key]):
+                        self.__setattr__(key, val)
+                    else:
+                        raise TypeError(f'Incoming JSON "{key}" must contain "{types[key]}", {type(val)} not allowed.')
+                else:
+                    self.extraJson[key] = val
+
+            # make sure all required keys are supplied
+            for prop in props:
+                missingProps = []
+                if not isinstance(None, types[prop]) and self.__getattribute__(prop) is None:
+                    missingProps.append(prop)
+                if missingProps:
+                    missingStr = ', '.join([f'"{p}"' for p in missingProps])
+                    raise TypeError(f'Incoming JSON missing required key{"s" if len(missingProps) > 1 else ""}: {missingStr}')
