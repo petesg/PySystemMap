@@ -49,13 +49,28 @@
                     "int. connector" : true,
                     "connector" : "DB-26",
                     "direction" : "O",
-                    "pinout" : {
-                        "7" : "B",
-                        "9" : "GND",
-                        "15" : "Z",
-                        "24" : "A",
-                        "26" : "+5V"
-                    }
+                    "pinout" : [
+                        {
+                            "pin" : "7",
+                            "net" : "B"
+                        },
+                        {
+                            "pin" : "9",
+                            "net" : "GND"
+                        },
+                        {
+                            "pin" : "15",
+                            "net" : "Z"
+                        },
+                        {
+                            "pin" : "24",
+                            "net" : "A"
+                        },
+                        {
+                            "pin" : "26",
+                            "net" : "+5V"
+                        }
+                    ]
                 }
             ]
         },
@@ -68,13 +83,28 @@
                     "int. connector" : false,
                     "connector" : "DB-26",
                     "direction" : "I",
-                    "pinout" : {
-                        "7" : "B",
-                        "9" : "GND",
-                        "15" : "Z",
-                        "24" : "A",
-                        "26" : "+5V"
-                    }
+                    "pinout" : [
+                        {
+                            "pin" : "7",
+                            "net": "B"
+                        },
+                        {
+                            "pin" : "9",
+                            "net": "GND"
+                        },
+                        {
+                            "pin" : "15",
+                            "net" : "Z"
+                        },
+                        {
+                            "pin" : "24",
+                            "net" : "A"
+                        },
+                        {
+                            "pin" : "26",
+                            "net" : "+5V"
+                        }
+                    ]
                 },
                 {   "name" : "Motor Drive",
                     "bus" : "Motor Power",

@@ -1,6 +1,7 @@
 import sqlite3
 import json
 import os
+import re
 from _typeshed import SupportsRead
 from typing import Iterable, get_type_hints
 
@@ -104,36 +105,47 @@ class SystemMap:
         
         self._db.commit()
         cursor.close()
-
-    def _GetExtraJson(obj: dict[str, any], nonExtraKeys: Iterable[str]):
-        """Returns `obj` as a JSON string, stripped of keys listed in `nonExtraKeys`"""
-        return json.dumps({k: obj[k] for k in obj.keys() if k not in nonExtraKeys})
     
+
     class MapObject:
         extraJson: dict[str, any] | None
-        def __init__(self, d: dict[str, any]):
+        def __init__(self, jsonDict: dict[str, any], recognizedMembers: Iterable['MapObject']):
+            # TODO make sure all recognizedMembers are our children (or is that ok if they're not?)
             # get list of properties in this object
-            props = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
-            types = get_type_hints(self)
-            # reqdKeys: dict[str, type]
-            # optKeys: dict[str, type]
-
+            myTypes = get_type_hints(self)
+            # myProps = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
+            # ^ this doesn't work because dir() doesn't list properties that were just type hinted and not assigned a value
+            myProps = myTypes.keys()
+            
             # load in all the keys we're getting
-            for key in d.keys():
-                val = d[key]
-                if key in props:
-                    if isinstance(d, types[key]):
-                        self.__setattr__(key, val)
+            for key in jsonDict.keys():
+                incProp = re.sub(r'(a-zA-Z)[\s,.]+([a-zA-Z])', lambda m : m.group(0) + m.group(1).upper(), key)
+                incVal = jsonDict[key]
+                # see if the key matches any of our properties
+                if incProp in myProps:
+                    # first check if incoming value matches the expected type
+                    if isinstance(incVal, myTypes[incProp]):
+                        # easy to handle, assign the value to our property
+                        self.__setattr__(incProp, incVal)
+                    # if not, check if our prop is a special type
+                    elif myTypes[incProp] in recognizedMembers:
+                        # instantiate a new object of that type for the member and hand it the json contents we are looking at
+                        self.__setattr__(incProp, globals()[myTypes[incProp]](incVal, recognizedMembers))
+                    # finally, check if it is a list of a special type
+                    elif myTypes[incProp] in [list[t] for t in recognizedMembers]:
+                        self.__setattr__(incProp, [globals()[myTypes[incProp]](v, recognizedMembers) for v in incVal])
+                    # if it's something else, yell about it
                     else:
-                        raise TypeError(f'Incoming JSON "{key}" must contain "{types[key]}", {type(val)} not allowed.')
+                        raise TypeError(f'Incoming JSON "{key}" must contain "{myTypes[key]}", {type(incVal)} not allowed.')
+                # put any unexpected keys and their contents in the extraJson dict
                 else:
-                    self.extraJson[key] = val
+                    self.extraJson[key] = incVal
 
             # make sure all required keys are supplied
-            for prop in props:
+            for incProp in myProps:
                 missingProps = []
-                if not isinstance(None, types[prop]) and self.__getattribute__(prop) is None:
-                    missingProps.append(prop)
+                if not isinstance(None, myTypes[incProp]) and self.__getattribute__(incProp) is None:
+                    missingProps.append(incProp)
                 if missingProps:
                     missingStr = ', '.join([f'"{p}"' for p in missingProps])
                     raise TypeError(f'Incoming JSON missing required key{"s" if len(missingProps) > 1 else ""}: {missingStr}')
