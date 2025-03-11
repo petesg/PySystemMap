@@ -155,7 +155,7 @@ class MapObject():
                 missingStr = ', '.join([f'"{p}"' for p in missingProps])
                 raise TypeError(f'Incoming JSON missing required key{"s" if len(missingProps) > 1 else ""}: {missingStr}')
 
-    def StoreInDb(self, dbConnection: sqlite3.Connection) -> None:
+    def StoreInDb(self, dbConnection: sqlite3.Connection) -> int:
         raise NotImplementedError(f'{type(self)} has not implemented a direct-to-database storage method.  Either this class is meant to only be loaded by a class containing it as a member, or the `StoreInDb()` method needs to be implemented.')
 
     @classmethod
