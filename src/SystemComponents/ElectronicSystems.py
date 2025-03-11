@@ -17,6 +17,7 @@ class PinMap(SystemMap.MapObject):
                        extraJson TEXT)
                        ''')
         dbConnection.commit()
+        cursor.close()
 
 
 class Net(SystemMap.MapObject):
@@ -27,6 +28,7 @@ class Net(SystemMap.MapObject):
         cursor = dbConnection.cursor()
         cursor.execute('CREATE TABLE nets (name TEXT NOT NULL UNIQUE, bus INTEGER NOT NULL REFERENCES busses(rowid) ON DELETE CASCADE, extraJson TEXT)')
         dbConnection.commit()
+        cursor.close()
 
 
 class Bus(SystemMap.MapObject):
@@ -37,17 +39,20 @@ class Bus(SystemMap.MapObject):
     def StoreInDb(self, dbConnection: sqlite3.Connection) -> None:
         cursor = dbConnection.cursor()
         cursor.execute('INSERT INTO busses (name, signal) VALUES (?, ?)', (self.name, self.signal))
-        dbConnection.commit()
+        # dbConnection.commit() # TODO does it work without this?  If it does, then we can catch an exception and roll back
         cursor.execute('SELECT LAST_INSERT_ROWID();')
         busid = cursor.fetchone()[0]
-        for net in self.nets:
+        for net in self.nets: # TODO should this be here or moved to a StoreInDb() method of Net which accepts the busid?
             cursor.execute('INSERT INTO nets (name, bus, extraJson) VALUES (?, ?, ?)', (net.name, busid, net.extraJson, json.dumps(net.extraJson)))
+        dbConnection.commit()
+        cursor.close()
 
     @classmethod
     def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> None:
         cursor = dbConnection.cursor()
         cursor.execute('CREATE TABLE busses (name TEXT NOT NULL UNIQUE, signal TEXT, extraJson TEXT)')
         dbConnection.commit()
+        cursor.close()
 
 
 class Connection(SystemMap.MapObject):
@@ -73,6 +78,7 @@ class Connection(SystemMap.MapObject):
                             extraJson TEXT
                             )''')
         dbConnection.commit()
+        cursor.close()
 
 
 class ENode(SystemMap.MapObject):
@@ -85,4 +91,5 @@ class ENode(SystemMap.MapObject):
         cursor = dbConnection.cursor()
         cursor.execute('CREATE TABLE enodes (name TEXT NOT NULL UNIQUE, location TEXT, extraJson TEXT)')
         dbConnection.commit()
+        cursor.close()
     
