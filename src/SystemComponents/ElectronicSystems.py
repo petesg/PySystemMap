@@ -75,6 +75,7 @@ class Bus(SystemMap.MapObject):
             net.StoreInDb(dbConnection, busid)
         dbConnection.commit()
         cursor.close()
+        return busid
 
     @classmethod
     def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> None:
@@ -101,14 +102,16 @@ class Connection(SystemMap.MapObject):
                         INSERT INTO connections (name, node, bus, intcable, intconn, connector, direction, extraJson)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
                        ''', (self.name, nodeId, busId, self.intCable, self.intConnector, self.connector, self.direction, self.extraJson))
-        cursor.execute('SELECT last_insert_rowid()')
-        id = cursor.fetchone()[0]
-        asldkfj/
         dbConnection.commit()
         cursor.close()
+        cursor.execute('SELECT last_insert_rowid()')
+        id = cursor.fetchone()[0]
+        for pinMap in self.pinout:
+            pinMap.StoreInDb(dbConnection, id)
+        return id
 
     @classmethod
-    def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> None:
+    def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> int:
         cursor = dbConnection.cursor()
         cursor.execute('''  CREATE TABLE connections (
                             name TEXT NOT NULL UNIQUE,
@@ -122,12 +125,24 @@ class Connection(SystemMap.MapObject):
                             )''')
         dbConnection.commit()
         cursor.close()
+        return id
 
 
 class ENode(SystemMap.MapObject):
     name: str
     location: str | None
     connections: list[Connection]
+
+    def StoreInDb(self, dbConnection: sqlite3.Connection):
+        cursor = dbConnection.cursor()
+        cursor.execute('INSERT INTO enodes (name, location, extraJson) VALUES (?, ?, ?)', (self.name, self.location, self.extraJson))
+        dbConnection.commit()
+        cursor.execute('SELECT last_insert_rowid()')
+        id = cursor.fetchone()[0]
+        for connection in self.connections:
+            connection.StoreInDb(dbConnection, id)
+        cursor.close()
+        return id
 
     @classmethod
     def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> None:
