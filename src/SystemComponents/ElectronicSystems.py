@@ -2,6 +2,10 @@ import SystemMap
 import sqlite3
 import json
 
+class ElectronicSystemMap(SystemMap.SystemMap):
+    def __init__(self, name: str, dataDir: str, jsonStr: str = None, overwrite: bool = False):
+        super().__init__(name, dataDir, [ENode, Bus, Connection, Net, PinMap], jsonStr, overwrite)
+
 class PinMap(SystemMap.MapObject):
     pin: str
     net: str

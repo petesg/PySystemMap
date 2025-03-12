@@ -10,8 +10,12 @@ class SystemMap:
 
     _dataDir: str
     _db: sqlite3.Connection
+        
+    def __init__(self, dbDir: str):
+        """Opens a sqlite .db file of a system map."""
+        self._ConnectDb(dbDir)
 
-    def __init__(self, name: str, dataDir: str, jsonStr: str = None, overwrite: bool = False):
+    def __init__(self, name: str, dataDir: str, supportedObjects: Iterable['MapObject'], jsonStr: str = None, overwrite: bool = False):
         """Initializes empty system map."""
 
         # make sure the name doesn't exist already
@@ -30,11 +34,8 @@ class SystemMap:
 
         # load json if given
         if jsonStr:
-            self.LoadFromJson(jsonStr, False)
-        
-    def __init__(self, dbDir: str):
-        """Opens a sqlite .db file of a system map."""
-        self._ConnectDb(dbDir)
+            self.LoadFromJson(jsonStr, supportedObjects, True)
+            #                                            ^ TODO partial-imports not supported yet
 
     def __del__(self):
         self._db.close()
