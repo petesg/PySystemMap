@@ -20,7 +20,7 @@ class SystemMap:
             if overwrite:
                 os.remove(dbPath)
             else:
-                raise FileExistsError(f'Map "{name}" already exists')
+                raise FileExistsError(f'A map with name "{name}" already exists in "{dataDir}"')
         
         # open the database connection
         self._ConnectDb(dbPath)
@@ -44,68 +44,41 @@ class SystemMap:
         cursor = self._db.cursor()
         cursor.execute('PRAGMA foreign_keys = ON')
 
-    def LoadFromJson(self, jsonStr: str, eraseExisting: bool) -> list[str]:
+    def LoadFromJson(self, jsonStr: str, supportedObjects: Iterable['MapObject'], eraseExisting: bool) -> list[str]:
         output: list[str] = []
 
         # load in as dict
         j: dict[str, any] = json.loads(jsonStr)
 
+        # figure out which are the top-level keys
+        reqdKeys = []
+        for jo in supportedObjects:
+            try:
+                reqdKeys.append(jo.JsonKey())
+            except NotImplementedError:
+                pass
+
         # verify top-level keys
-        reqdKeys = ['nodes', 'busses']
         for key in reqdKeys:
             if key not in j.keys():
                 raise ValueError(f'Input JSON must include "{key}" key at top level.')
+            elif type(j[key]) is not list:
+                raise ValueError(f'Top-level JSON key "{key}" must contain a list.')
         for key in j.keys():
             if key not in reqdKeys:
-                output.append(f'WARNING: Unknown top-level key "{key}" will be ignored.  Additional JSON data only supported at lower levels.')
+                output.append(f'WARNING: Unknown top-level key "{key}" in JSON will be ignored.  Arbitrary JSON data only supported at lower levels.')
 
-        # make a cursor
-        cursor = self._db.cursor()
-
-        # load busses first
-        if type(j['busses']) is not list:
-            raise ValueError(f'JSON key "busses" must contain a list.')
-        for bus in j['busses']:
-            # load values
-            name = bus['name']
-            nets = bus['nets']
-            signal = bus['signal']
-            if nets and type(nets) is not list:
-                raise ValueError(f'JSON key "nets" must contain a list.')
-            extraBusInfo = json.dumps({k: bus[k] for k in bus.keys() if k not in ['name', 'nets', 'signal']})
-            if extraBusInfo == {}:
-                extraBusInfo = None
-            # save to db
-            cursor.execute('INSERT INTO busses (name, signal, extraJson) VALUES (?, ?, ?)', [name, signal, extraBusInfo])
-            self._db.commit()
-            cursor.execute('SELECT LAST_INSERT_ROWID();')
-            busId = cursor.fetchone()[0]
-            if nets:
-                for net in nets:
-                    name = net['name']
-                    cursor.execute('INSERT INTO nets (name, bus, extrajson) VALUES (?, ?, ?)', [name, busId, ])
+        # load objects in
+        for jo in supportedObjects:
+            o: MapObject = jo.__init__(j[jo.JsonKey()], supportedObjects)
+            o.StoreInDb(self._db)
 
         return output
 
-    def _SetupDb(self) -> None:
+    def _SetupDb(self, mapObjects: 'MapObject', parentId: int | None = None) -> None:
         cursor = self._db.cursor()
-
-        cursor.execute('CREATE TABLE nodes (name TEXT NOT NULL UNIQUE, location TEXT, extraJson TEXT)')
-        cursor.execute('CREATE TABLE busses (name TEXT NOT NULL UNIQUE, signal TEXT, extraJson TEXT)')
-        cursor.execute('''
-                        CREATE TABLE connections (
-                        name TEXT NOT NULL UNIQUE,
-                        node INTEGER NOT NULL REFERENCES nodes(rowid),
-                        bus INTEGER REFERENCES busses(rowid),
-                        intcable BOOLEAN,
-                        intconn BOOLEAN,
-                        connector TEXT,
-                        direction VARCHAR(2),
-                        extraJson TEXT
-                       )''')
-        cursor.execute('CREATE TABLE nets (name TEXT NOT NULL UNIQUE, bus INTEGER NOT NULL REFERENCES busses(rowid), extraJson TEXT)')
-        cursor.execute('CREATE TABLE pinouts (connection INTEGER NOT NULL REFERENCES connections(rowid), net INTEGER NOT NULL REFERENCES nets(rowid), pin NOT NULL TEXT, extraJson TEXT)')
-        
+        for o in mapObjects:
+            o.SetupDbTable()
         self._db.commit()
         cursor.close()
     
@@ -161,3 +134,7 @@ class MapObject():
     @classmethod
     def SetupDbTable(cls, dbConnection: sqlite3.Connection) -> None:
         raise NotImplementedError(f'{cls} is missing `SetupDbTable()` implementation.')
+    
+    @classmethod
+    def JsonKey(cls) -> str:
+        raise NotImplementedError(f'{cls} is missing `JsonKey()` override required to be used as a top-level JSON key.')

@@ -83,6 +83,10 @@ class Bus(SystemMap.MapObject):
         cursor.execute('CREATE TABLE busses (name TEXT NOT NULL UNIQUE, signal TEXT, extraJson TEXT)')
         dbConnection.commit()
         cursor.close()
+    
+    @classmethod
+    def JsonKey(cls) -> str:
+        return 'busses'
 
 
 class Connection(SystemMap.MapObject):
@@ -150,4 +154,8 @@ class ENode(SystemMap.MapObject):
         cursor.execute('CREATE TABLE enodes (name TEXT NOT NULL UNIQUE, location TEXT, extraJson TEXT)')
         dbConnection.commit()
         cursor.close()
+    
+    @classmethod
+    def JsonKey(cls) -> str:
+        return "nodes"
     
