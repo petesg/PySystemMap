@@ -2,7 +2,6 @@ import sqlite3
 import json
 import os
 import re
-from _typeshed import SupportsRead
 from typing import Iterable, get_type_hints
 # from SystemComponents.ElectronicSystems import Bus, Connection, Net, Node, Pinout
 
@@ -10,21 +9,24 @@ class SystemMap:
 
     _dataDir: str
     _db: sqlite3.Connection
-        
-    def __init__(self, dbDir: str):
-        """Opens a sqlite .db file of a system map."""
-        self._ConnectDb(dbDir)
 
-    def __init__(self, name: str, dataDir: str, supportedObjects: Iterable['MapObject'], jsonStr: str = None, overwrite: bool = False):
+    def __init__(self, name: str, dataDir: str, jsonStr: str | None = None, supportedObjects: Iterable['MapObject'] | None = None):
         """Initializes empty system map."""
 
-        # make sure the name doesn't exist already
         dbPath = os.path.join(dataDir, f'{name}.db')
+
+        # validate arguments
+        if jsonStr is None and supportedObjects is None:
+            self._ConnectDb(os.path.join)
+            return
+        elif jsonStr is not None and supportedObjects is not None:
+            pass
+        else:
+            raise ValueError('Either both `jsonStr` and `supportedObjects` arguments must be supplied or neither.')
+
+        # make sure the name doesn't exist already
         if os.path.exists(dbPath):
-            if overwrite:
-                os.remove(dbPath)
-            else:
-                raise FileExistsError(f'A map with name "{name}" already exists in "{dataDir}"')
+            raise FileExistsError(f'A map with name "{name}" already exists in "{dataDir}"')
         
         # open the database connection
         self._ConnectDb(dbPath)
@@ -33,9 +35,8 @@ class SystemMap:
         self._SetupDb()
 
         # load json if given
-        if jsonStr:
-            self.LoadFromJson(jsonStr, supportedObjects, True)
-            #                                            ^ TODO partial-imports not supported yet
+        self.LoadFromJson(jsonStr, supportedObjects, True)
+        #                                            ^ TODO partial-imports not supported yet
 
     def __del__(self):
         self._db.close()
