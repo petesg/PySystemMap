@@ -1,10 +1,12 @@
-import SystemMap
 import sqlite3
 import json
+from typing import Iterable
+
+from .. import SystemMap
 
 class ElectronicSystemMap(SystemMap.SystemMap):
-    def __init__(self, name: str, dataDir: str, jsonStr: str = None, overwrite: bool = False):
-        super().__init__(name, dataDir, [ENode, Bus, Connection, Net, PinMap], jsonStr, overwrite)
+    def __init__(self, name: str, dataDir: str, jsonStr: str | None = None):
+        super().__init__(name, dataDir, jsonStr, [ENode, Bus, Connection, Net, PinMap])
 
 class PinMap(SystemMap.MapObject):
     pin: str
@@ -30,7 +32,7 @@ class PinMap(SystemMap.MapObject):
                        CREATE TABLE pinouts (
                        connection INTEGER NOT NULL REFERENCES connections(rowid) ON DELETE CASCADE,
                        net INTEGER NOT NULL REFERENCES nets(rowid) ON DELETE CASCADE,
-                       pin NOT NULL TEXT,
+                       pin TEXT NOT NULL,
                        extraJson TEXT
                        )''')
         dbConnection.commit()
