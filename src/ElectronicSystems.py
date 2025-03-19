@@ -14,7 +14,7 @@ class PinMap(SystemMap.MapObject):
 
     def StoreInDb(self, dbConnection: sqlite3.Connection, connId: int) -> int:
         cursor = dbConnection.cursor()
-        cursor.execute('SELECT bus FROM connections WHERE rowid = ?', (connId))
+        cursor.execute('SELECT bus FROM connections WHERE rowid = ?', (connId,))
         busId = cursor.fetchone()[0]
         cursor.execute('SELECT rowid FROM nets WHERE bus = ? AND net = ?', (busId, self.net))
         netId = cursor.fetchone()[0]
@@ -44,7 +44,7 @@ class Net(SystemMap.MapObject):
 
     def StoreInDb(self, dbConnection: sqlite3.Connection, busId: int) -> int:
         cursor = dbConnection.cursor()
-        cursor.execute('INSERT INTO nets (name, bus, extraJson) VALUES (?, ?, ?)', (self.name, busId, self.extraJson, json.dumps(self.extraJson)))
+        cursor.execute('INSERT INTO nets (name, bus, extraJson) VALUES (?, ?, ?)', (self.name, busId, json.dumps(self.extraJson)))
         cursor.execute('SELECT last_insert_rowid()')
         id = cursor.fetchone()[0]
         dbConnection.commit()
@@ -96,7 +96,7 @@ class Bus(SystemMap.MapObject):
 
 
 class Connection(SystemMap.MapObject):
-    name: str
+    name: str | None
     bus: str
     intCable: bool | None
     intConnector: bool | None
@@ -106,12 +106,12 @@ class Connection(SystemMap.MapObject):
 
     def StoreInDb(self, dbConnection: sqlite3.Connection, nodeId: int):
         cursor = dbConnection.cursor()
-        cursor.execute('SELECT rowid FROM busses WHERE name = ?', (self.bus))
+        cursor.execute('SELECT rowid FROM busses WHERE name = ?', (self.bus,))
         busId = cursor.fetchone()[0]
         cursor.execute('''
                         INSERT INTO connections (name, node, bus, intcable, intconn, connector, direction, extraJson)
                        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-                       ''', (self.name, nodeId, busId, self.intCable, self.intConnector, self.connector, self.direction, self.extraJson))
+                       ''', (self.name, nodeId, busId, self.intCable, self.intConnector, self.connector, self.direction, json.dumps(self.extraJson)))
         dbConnection.commit()
         cursor.close()
         cursor.execute('SELECT last_insert_rowid()')
@@ -145,7 +145,7 @@ class ENode(SystemMap.MapObject):
 
     def StoreInDb(self, dbConnection: sqlite3.Connection):
         cursor = dbConnection.cursor()
-        cursor.execute('INSERT INTO enodes (name, location, extraJson) VALUES (?, ?, ?)', (self.name, self.location, self.extraJson))
+        cursor.execute('INSERT INTO enodes (name, location, extraJson) VALUES (?, ?, ?)', (self.name, self.location, json.dumps(self.extraJson)))
         dbConnection.commit()
         cursor.execute('SELECT last_insert_rowid()')
         id = cursor.fetchone()[0]

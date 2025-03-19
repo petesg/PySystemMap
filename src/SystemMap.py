@@ -123,8 +123,8 @@ class MapObject():
                 elif myTypes[incProp] in [list[t] for t in recognizedMembers]:
                     self.__setattr__(incProp, [myTypes[incProp].__args__[0](v, recognizedMembers) for v in incVal])
                 # finally, check if incoming value matches the expected type (which should be a basic type if we got here)
-                #    TODO this will fail with a parameterized generic type hint because type hints are a janky, bolted-on idiotic mess
-                if isinstance(incVal, myTypes[incProp]):
+                #    TODO this will fail with a parameterized generic type hint that doesn't get caught above because type hints are a janky, bolted-on idiotic mess
+                elif isinstance(incVal, myTypes[incProp]):
                     # easy to handle, assign the value to our property
                     self.__setattr__(incProp, incVal)
                 # if it's something else, yell about it
