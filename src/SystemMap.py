@@ -82,10 +82,14 @@ class SystemMap:
                 output.append(f'WARNING: Unknown top-level key "{key}" in JSON will be ignored.  Arbitrary JSON data only supported at lower levels.')
 
         # load top-level objects in
+        supportedObjects.reverse() # so e.g. busses are loaded before connections which reference them
         for objType in supportedObjects:
-            for jo in j[objType.JsonKey()]:
-                o: MapObject = objType(jo, supportedObjects)
-                o.StoreInDb(self._db)
+            try:
+                for jo in j[objType.JsonKey()]:
+                    o: MapObject = objType(jo, supportedObjects)
+                    o.StoreInDb(self._db)
+            except NotImplementedError:
+                pass
 
         return output
 
@@ -121,7 +125,8 @@ class MapObject():
                     self.__setattr__(incProp, globals()[myTypes[incProp]](incVal, recognizedMembers))
                 # ... or if it is a list of a special type
                 elif myTypes[incProp] in [list[t] for t in recognizedMembers]:
-                    self.__setattr__(incProp, [myTypes[incProp].__args__[0](v, recognizedMembers) for v in incVal])
+                    if incVal is not None:
+                        self.__setattr__(incProp, [myTypes[incProp].__args__[0](v, recognizedMembers) for v in incVal])
                 # finally, check if incoming value matches the expected type (which should be a basic type if we got here)
                 #    TODO this will fail with a parameterized generic type hint that doesn't get caught above because type hints are a janky, bolted-on idiotic mess
                 elif isinstance(incVal, myTypes[incProp]):

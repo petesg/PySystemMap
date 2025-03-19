@@ -10,6 +10,6 @@ if __name__ == '__main__':
     with open('examples/ExampleHookupDiagram.json') as f:
         j = f.read()
     m = ElectronicSystems.ElectronicSystemMap('Example', 'localfiles', j)
-    # nodes = m.Query('SELECT * FROM nodes')
-    # for r in nodes:
-    #     print(r)
+    nodes = m.Query('SELECT * FROM nodes')
+    for r in nodes:
+        print(r)
