@@ -3,7 +3,7 @@ import re
 import os
 from pathlib import Path
 amStupidCopy = False
-if os.name == 'posix' and not amStupidCopy:
+if not amStupidCopy:
     with open(__file__) as me:
         meStr = me.read()
     meStr = re.sub(r'from\s+\.\.([a-zA-Z._]+)\s+import\s+([a-zA-Z._]+)', lambda m : f'from {m.group(1)} import {m.group(2)}', meStr)
@@ -11,7 +11,7 @@ if os.name == 'posix' and not amStupidCopy:
     bsExcLoc = os.path.join(Path(__file__).parent.parent.absolute(), 'stupidExampleFile.py')
     with open(bsExcLoc, 'w+') as stupidMe:
         stupidMe.write(meStr)
-    os.system(f'python3 {bsExcLoc}')
+    os.system(f'{"python3" if os.name == 'posix' else "python"} {bsExcLoc}')
     os.remove(bsExcLoc)
     exit()
 

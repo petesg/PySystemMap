@@ -2,7 +2,7 @@ import sqlite3
 import json
 from typing import Iterable
 
-from .. import SystemMap
+import SystemMap
 
 class ElectronicSystemMap(SystemMap.SystemMap):
     def __init__(self, name: str, dataDir: str, jsonStr: str | None = None):

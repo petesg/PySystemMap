@@ -3,9 +3,7 @@ import json
 import os
 import re
 from typing import Iterable, Type, get_type_hints
-from typeguard import check_type
-
-from TypeValidation import is_instance
+from typeguard import check_type, TypeCheckError
 
 class SystemMap:
 
@@ -108,7 +106,7 @@ class MapObject():
         # get list of properties in this object
         myTypes = get_type_hints(self)
         # myProps = [attr for attr in dir(self) if not callable(getattr(self, attr)) and not attr.startswith("__")]
-        # ^ this doesn't work because dir() doesn't list properties that were just type hinted and not assigned a value
+        # ^ this doesn't work because dir() doesn't list properties that were only type hinted and not assigned a value
         myProps = myTypes.keys()
         
         # load in all the keys we're getting
@@ -117,19 +115,18 @@ class MapObject():
             incVal = jsonDict[key]
             # see if the key matches any of our properties
             if incProp in myProps:
-                # first check if incoming value matches the expected type
-                # if check_type(incVal, myTypes[incProp]):
-                # if isinstance(incVal, myTypes[incProp]):
-                if is_instance(incVal, myTypes[incProp]):
-                    # easy to handle, assign the value to our property
-                    self.__setattr__(incProp, incVal)
-                # if not, check if our prop is a special type
-                elif myTypes[incProp] in recognizedMembers:
+                # first, check if our prop is a special type
+                if myTypes[incProp] in recognizedMembers:
                     # instantiate a new object of that type for the member and hand it the json contents we are looking at
                     self.__setattr__(incProp, globals()[myTypes[incProp]](incVal, recognizedMembers))
-                # finally, check if it is a list of a special type
+                # ... or if it is a list of a special type
                 elif myTypes[incProp] in [list[t] for t in recognizedMembers]:
-                    self.__setattr__(incProp, [globals()[myTypes[incProp]](v, recognizedMembers) for v in incVal])
+                    self.__setattr__(incProp, [myTypes[incProp].__args__[0](v, recognizedMembers) for v in incVal])
+                # finally, check if incoming value matches the expected type (which should be a basic type if we got here)
+                #    TODO this will fail with a parameterized generic type hint because type hints are a janky, bolted-on idiotic mess
+                if isinstance(incVal, myTypes[incProp]):
+                    # easy to handle, assign the value to our property
+                    self.__setattr__(incProp, incVal)
                 # if it's something else, yell about it
                 else:
                     raise TypeError(f'Incoming JSON "{key}" must contain "{myTypes[key]}", {type(incVal)} not allowed.')
@@ -140,9 +137,12 @@ class MapObject():
         # make sure all required keys are supplied
         for incProp in myProps:
             missingProps = []
-            # if not isinstance(None, myTypes[incProp]) and self.__getattribute__(incProp) is None:
-            # if not check_type(None, myTypes[incProp]) and self.__getattribute__(incProp) is None:
-            if not is_instance(None, myTypes[incProp]) and self.__getattribute__(incProp) is None:
+            try:
+                check_type(None, myTypes[incProp])
+                isNullable = True
+            except TypeCheckError:
+                isNullable = False
+            if not isNullable and self.__getattribute__(incProp) is None:
                 missingProps.append(incProp)
             if missingProps:
                 missingStr = ', '.join([f'"{p}"' for p in missingProps])
