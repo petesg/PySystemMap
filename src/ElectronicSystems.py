@@ -58,7 +58,7 @@ class Net(SystemMap.MapObject):
         cursor.execute('''
                        CREATE TABLE nets (
                        rowid INTEGER PRIMARY KEY,
-                       name TEXT NOT NULL UNIQUE,
+                       name TEXT NOT NULL,
                        bus INTEGER NOT NULL REFERENCES busses(rowid) ON DELETE CASCADE,
                        extraJson TEXT,
                        CONSTRAINT unique_nets_in_bus UNIQUE (bus, name)
