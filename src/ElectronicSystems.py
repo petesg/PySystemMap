@@ -17,7 +17,11 @@ class PinMap(SystemMap.MapObject):
         cursor.execute('SELECT bus FROM connections WHERE rowid = ?', (connId,))
         busId = cursor.fetchone()[0]
         cursor.execute('SELECT rowid FROM nets WHERE bus = ? AND name = ?', (busId, self.net))
-        netId = cursor.fetchone()[0]
+        try:
+            netId = cursor.fetchone()[0]
+        except TypeError:
+            cursor.execute('SELECT name FROM busses WHERE rowid = ?', (busId,))
+            raise ValueError(f'Net "{self.net}" for pin "{self.pin}" does not exist on bus "{cursor.fetchone()[0]}".')
         cursor.execute('INSERT INTO pinouts (connection, net, pin, extraJson) VALUES (?, ?, ?, ?)', (connId, netId, self.pin, self.net))
         dbConnection.commit()
         cursor.execute('SELECT last_insert_rowid()')
@@ -79,8 +83,7 @@ class Bus(SystemMap.MapObject):
         # dbConnection.commit() # TODO does it work without this?  If it does, then we can catch an exception and roll back (also we wouldn't need connection only cursor)
         cursor.execute('SELECT LAST_INSERT_ROWID();')
         busid = cursor.fetchone()[0]
-        for net in self.nets: # TODO should this be here or moved to a StoreInDb() method of Net which accepts the busid?
-            # cursor.execute('INSERT INTO nets (name, bus, extraJson) VALUES (?, ?, ?)', (net.name, busid, net.extraJson, json.dumps(net.extraJson)))
+        for net in self.nets:
             net.StoreInDb(dbConnection, busid)
         dbConnection.commit()
         cursor.close()
@@ -128,7 +131,7 @@ class Connection(SystemMap.MapObject):
         cursor = dbConnection.cursor()
         cursor.execute('''  CREATE TABLE connections (
                             rowid INTEGER PRIMARY KEY,
-                            name TEXT UNIQUE,
+                            name TEXT,
                             node INTEGER NOT NULL REFERENCES nodes(rowid) ON DELETE CASCADE,
                             bus INTEGER REFERENCES busses(rowid) ON DELETE CASCADE,
                             intcable BOOLEAN,
