@@ -44,9 +44,12 @@ class SystemMap:
         except: # TODO make this more specific?
             pass
 
-    def Query(self, q: str):
+    def Query(self, q: str, values: tuple | None = None):
         cursor = self._db.cursor()
-        cursor.execute(q)
+        if values is None:
+            cursor.execute(q)
+        else:
+            cursor.execute(q, values)
         res = cursor.fetchall()
         cursor.close()
         # self._db.commit()
@@ -115,7 +118,7 @@ class MapObject():
         
         # load in all the keys we're getting
         for key in jsonDict.keys():
-            incProp = re.sub(r'(a-zA-Z)[\s,.]+([a-zA-Z])', lambda m : m.group(1) + m.group(2).upper(), key)
+            incProp = re.sub(r'([a-zA-Z])[\s,.]+([a-zA-Z])', lambda m : m.group(1) + m.group(2).capitalize(), key)
             incVal = jsonDict[key]
             # see if the key matches any of our properties
             if incProp in myProps:
@@ -149,9 +152,9 @@ class MapObject():
                 isNullable = False
             if not isNullable and self.__getattribute__(incProp) is None:
                 missingProps.append(incProp)
-            if missingProps:
-                missingStr = ', '.join([f'"{p}"' for p in missingProps])
-                raise TypeError(f'Incoming JSON missing required key{"s" if len(missingProps) > 1 else ""}: {missingStr}')
+        if missingProps:
+            missingStr = ', '.join([f'"{p}"' for p in missingProps])
+            raise TypeError(f'Incoming JSON missing required key{"s" if len(missingProps) > 1 else ""}: {missingStr}')
 
     def StoreInDb(self, dbConnection: sqlite3.Connection, parentId: int | None = None) -> int:
         raise NotImplementedError(f'{type(self)} has not implemented a direct-to-database storage method.  Either this class is meant to only be loaded by a class containing it as a member, or the `StoreInDb()` method needs to be implemented.')
